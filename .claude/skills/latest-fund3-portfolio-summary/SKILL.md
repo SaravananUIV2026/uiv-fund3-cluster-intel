@@ -1,12 +1,12 @@
-Base directory for this skill: /home/user/uiv-fund3-cluster-intel/.claude/skills/uiv-fund3-cluster-intel-v3
+Base directory for this skill: /home/user/uiv-fund3-cluster-intel/.claude/skills/latest-fund3-portfolio-summary
 
-# UIV Fund III — Weekly Portfolio Intelligence (v3, cluster-based, burn/runway-integrity fix)
+# Latest Fund III Portfolio Summary (cluster-based, burn/runway-integrity fix)
 
 This skill runs the Master Agent + cluster SubAgent orchestration defined in
-`.claude/workflows/uiv-fund3-cluster-intel-v3.js` via the Workflow tool. It is a
-**separate copy** of `uiv-fund3-cluster-intel` (v2) — v2 is untouched and still usable.
-Use v3 going forward once you've verified a run looks right; it carries the same
-company/cluster data as v2 plus two classes of fixes:
+`.claude/workflows/latest-fund3-portfolio-summary.js` via the Workflow tool. It is a
+**separate copy** of `uiv-fund3-cluster-intel` (the original v2 skill) — v2 is untouched
+and still usable. Use this one going forward once you've verified a run looks right; it
+carries the same company/cluster data as v2 plus two classes of fixes:
 
 ## What changed vs v2 (this is the entire diff — everything else is identical)
 
@@ -70,7 +70,7 @@ company/cluster data as v2 plus two classes of fixes:
 
 1. Compute the coverage week: the 7 days ending on today's date (inclusive). Render
    `coverageWeekLabel` as `"Mon D – Mon D, YYYY"`.
-2. Call the `Workflow` tool with `name: "uiv-fund3-cluster-intel-v3"` and `args`:
+2. Call the `Workflow` tool with `name: "latest-fund3-portfolio-summary"` and `args`:
    ```json
    {
      "recipientEmail": "saravanan@unicornivc.com",
@@ -93,10 +93,11 @@ company/cluster data as v2 plus two classes of fixes:
 
 ## Notes for future edits
 
-- Do not edit `uiv-fund3-cluster-intel.js` (v2) as part of maintaining this version, and
-  vice versa — they are intentionally forked copies so v2 remains a known-good rollback
-  point until v3 has been verified against a real run.
+- Do not edit `uiv-fund3-cluster-intel.js` (the original v2 workflow) as part of
+  maintaining this one, and vice versa — they are intentionally forked copies so v2
+  remains a known-good rollback point until this version has been verified against a
+  real run.
 - If a future edit needs to touch the company/cluster map (add/remove a company, folder
   ID changes), verify by fresh Drive reconnaissance and update both `COMPANY_SOURCE_MAP`
-  and `CLUSTERS` in `uiv-fund3-cluster-intel-v3.js` together, exactly as the v2 workflow
-  required.
+  and `CLUSTERS` in `latest-fund3-portfolio-summary.js` together, exactly as the v2
+  workflow required.

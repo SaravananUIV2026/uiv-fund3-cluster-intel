@@ -1,7 +1,7 @@
 export const meta = {
-  name: 'uiv-fund3-cluster-intel-v3',
-  description: 'UIV Fund III weekly portfolio intelligence, v3: same cluster-SubAgent + Master Agent pipeline as v2, with (a) burn/runway integrity fixes — sign-convention normalization, monthly-vs-cumulative guard, and explicit Master Agent sanity checks — and (b) a mobile/laptop-friendly 2-column email layout (Revenue/Cashflow | KPIs/Business Updates) per company, read-only from the verified Drive folder map + MIS Sheet.',
-  whenToUse: 'Run weekly to produce and send the UIV Fund III Weekly Portfolio Insights email (v3: corrected burn/runway integrity, 2-column layout). Supersedes v2 for ongoing use once verified.',
+  name: 'latest-fund3-portfolio-summary',
+  description: 'Latest Fund III Portfolio Summary: cluster-SubAgent + Master Agent pipeline (formerly "uiv-fund3-cluster-intel-v3") with (a) burn/runway integrity fixes — sign-convention normalization, monthly-vs-cumulative guard, and explicit Master Agent sanity checks — and (b) a mobile/laptop-friendly 2-column email layout (Revenue/Cashflow | KPIs/Business Updates) per company, read-only from the verified Drive folder map + MIS Sheet.',
+  whenToUse: 'Run weekly to produce and send the UIV Fund III Weekly Portfolio Insights email (corrected burn/runway integrity, 2-column layout). Supersedes the older uiv-fund3-cluster-intel (v2) for ongoing use once verified.',
   phases: [
     { title: 'Analyze' },
     { title: 'Validate' },
