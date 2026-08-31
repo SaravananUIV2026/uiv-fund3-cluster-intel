@@ -340,15 +340,17 @@ dataGapsOrCaveats for anything genuinely unavailable. Do not leave dataAvailable
 you found nothing usable.`
 }
 
-function validationPrompt(companyResults, a) {
+function validationPrompt(clusterName, companyResults, a) {
   return `${FRAMEWORK_CORE}
 
-You are the MASTER AGENT for UIV Fund III's weekly portfolio intelligence email. Cluster
-SubAgents have completed isolated, one-company-at-a-time analyses for coverage week
-${a.coverageWeekLabel} (${a.coverageStart} to ${a.coverageEnd}). Their raw structured
-outputs are below.
+You are the MASTER AGENT for UIV Fund III's weekly portfolio intelligence email,
+validating ONLY the "${clusterName}" cluster (validation runs per-cluster, in parallel,
+so each call stays well under the response-size limit — do not worry about or reference
+any other cluster). Cluster SubAgents have completed isolated, one-company-at-a-time
+analyses for coverage week ${a.coverageWeekLabel} (${a.coverageStart} to
+${a.coverageEnd}). Their raw structured outputs for THIS CLUSTER ONLY are below.
 
-RAW SUBAGENT OUTPUTS:
+RAW SUBAGENT OUTPUTS (this cluster only):
 ${JSON.stringify(companyResults.filter(Boolean), null, 2)}
 
 YOUR JOB — validate, do not blindly forward:
@@ -397,13 +399,13 @@ skip this even under time/token pressure):
 - Tighten momDrivers/qoqDrivers/kpis/vcLensNotes text to be crisp, bullet-ready, and free
   of generic filler — every bullet must cite a real number or fact from that company's
   own SubAgent output, nothing invented at this stage either.
-- Write portfolioFlags: a handful of the most decision-relevant cross-portfolio callouts
-  for this week (biggest revenue movers, any Red financialHealth, any runway concern) —
-  grounded only in the data present, not speculation.
+- Write portfolioFlags: a handful of the most decision-relevant callouts from THIS
+  cluster only this week (biggest revenue movers, any Red financialHealth, any runway
+  concern) — grounded only in the data present, not speculation.
 
 Return via the required schema: companies (same objects, corrected/tightened, each with
 a short validationNotes stating what if anything you changed), portfolioFlags,
-dataIntegrityNotes.`
+dataIntegrityNotes — all scoped to this cluster's companies only.`
 }
 
 function emailSendPrompt(subject, htmlBody, plainText, a) {
@@ -722,11 +724,48 @@ if (failureRate > 0.5) {
 const companyResults = [...noSourceStubs, ...successfulResults, ...failureStubs]
 
 phase('Validate')
-const validated = await agent(validationPrompt(companyResults, a), { phase: 'Validate', schema: VALIDATION_SCHEMA })
-if (!validated || !Array.isArray(validated.companies) || !validated.companies.length) {
-  throw new Error('The Validate-phase agent call returned no usable result (likely a transient API/usage-limit issue) — no email was sent. Re-run the workflow.')
+// Validate per-cluster (parallel) rather than one call across all ~19-23
+// companies at once — a single monolithic call previously exceeded the
+// 64,000 output-token response cap and killed the whole run. Splitting by
+// cluster keeps each call's output small (at most ~6 companies) and lets
+// clusters validate in parallel, which is also faster.
+const resultsByCluster = new Map()
+for (const c of companyResults) {
+  if (!resultsByCluster.has(c.cluster)) resultsByCluster.set(c.cluster, [])
+  resultsByCluster.get(c.cluster).push(c)
 }
-log(`Validated ${validated.companies.length} companies. Flags: ${(validated.portfolioFlags || []).join(' | ') || 'none'}`)
+const clusterEntries = [...resultsByCluster.entries()]
+const clusterValidations = await parallel(
+  clusterEntries.map(([clusterName, companies]) => () =>
+    agent(validationPrompt(clusterName, companies, a), {
+      label: `Validate:${clusterName}`,
+      phase: 'Validate',
+      schema: VALIDATION_SCHEMA,
+    })
+  )
+)
+
+const validated = { companies: [], portfolioFlags: [], dataIntegrityNotes: [] }
+let anyClusterValidated = false
+clusterValidations.forEach((v, i) => {
+  const [clusterName, companies] = clusterEntries[i]
+  if (v && Array.isArray(v.companies) && v.companies.length) {
+    anyClusterValidated = true
+    validated.companies.push(...v.companies)
+    validated.portfolioFlags.push(...(v.portfolioFlags || []))
+    validated.dataIntegrityNotes.push(...(v.dataIntegrityNotes || []))
+  } else {
+    // This one cluster's validation failed — fall back to its raw,
+    // unvalidated SubAgent output rather than dropping those companies or
+    // failing the entire run; flag it explicitly so it's visible.
+    validated.companies.push(...companies.map(c => ({ ...c, validationNotes: 'Validation step failed for this cluster this run (transient error) — showing unvalidated SubAgent output as-is.' })))
+    validated.dataIntegrityNotes.push(`Validation failed for cluster "${clusterName}" this run (transient error) — its companies are shown with unvalidated (SubAgent-reported, not cross-checked) figures below.`)
+  }
+})
+if (!anyClusterValidated) {
+  throw new Error('Every cluster validation call failed this run (likely a transient API/usage-limit issue) — no email was sent. Re-run the workflow.')
+}
+log(`Validated ${validated.companies.length} companies across ${clusterEntries.length} clusters. Flags: ${validated.portfolioFlags.join(' | ') || 'none'}`)
 
 phase('Email')
 const subject = `UIV Fund III — Weekly Portfolio Insights | ${a.coverageWeekLabel}`
