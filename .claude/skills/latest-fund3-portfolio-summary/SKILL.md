@@ -53,12 +53,31 @@ carries the same company/cluster data as v2 plus two classes of fixes:
    `validationNotes` and that company's own table row. Do not re-add this section unless
    explicitly asked.
 
-4. **KPIs/Business Updates cell simplified to one flat bullet list**: previously this
-   cell had separate sub-headed blocks (a KPI `<ul>`, then a "MoM:" block, then "QoQ:",
-   then "Next Q:"). It's now a single bold-label bullet list (`KPI: ...`, `MoM: ...`,
-   `QoQ: ...`, `Next Q: ...`) — the same visual pattern as the Revenue/Cashflow cell, and
-   the same underlying content (kpis/momDrivers/qoqDrivers/nextQuestion) with nothing
-   reworded or added. This is a pure formatting change with zero compute cost.
+4. **KPIs/Business Updates cell — crisp, capped bullet list (revised again after user
+   feedback on a live run)**: the first pass (one flat bullet per every kpi/momDriver/
+   qoqDriver item) was still an info-dump — some companies produced 10-15 bullets. Now
+   `kpiCellHtml()` shows only: up to 3 KPIs (name: value, no period suffix), the single
+   lead MoM driver, the single lead QoQ driver, and the next question — same bold-label
+   bullet style as the Revenue/Cashflow cell. This is a pure selection/truncation of
+   already-verified text (`.slice(0, 3)` on kpis, first element of momDrivers/
+   qoqDrivers) — the SubAgent/Master Agent still compute the FULL driver analysis (that
+   full depth still backs the burn-integrity checks and is present in the raw validated
+   JSON `companyResults`/`validated` return value); only the email cell is capped. This
+   cannot introduce a new factual error since nothing is reworded or newly generated,
+   only fewer of the already-correct items are shown. If asked to change the cap again,
+   edit `KPI_CELL_MAX_KPIS` and the `[0]`-index picks in `kpiCellHtml()` — do not restore
+   the full per-item dump.
+
+5. **Subject line is fixed, always exactly `Revenue/Cashflows/KPIs Fund III`** — no
+   date/week suffix, per explicit user instruction, so the weekly email is easy to filter
+   in the inbox. Do not revert to the old `UIV Fund III — Weekly Portfolio Insights | ...`
+   format unless asked.
+
+6. **Cluster fix: Kluisz moved from "Fintech & B2B SaaS" to "AI (Vertical AI + AI
+   Infra)"** (alongside Vodex) per explicit user correction — the earlier v2 placement
+   (best-guess from a stale "CloudTech" tag) was wrong. `CLUSTERS` in the workflow script
+   now reflects this; `COMPANY_SOURCE_MAP['Kluisz']` (folder ID, rebrand-to-"Nava" note)
+   is unchanged, only its cluster assignment moved.
 
 ## Standing facts (same as v2, do not re-ask the user for these)
 

@@ -71,13 +71,13 @@ const COMPANY_SOURCE_MAP = {
 }
 
 const CLUSTERS = [
-  { name: 'Fintech & B2B SaaS', companies: ['Kluisz', 'DeepAlgo', 'Pelocal', 'Qubehealth', 'StampMyVisa', 'Zealthix'] },
+  { name: 'Fintech & B2B SaaS', companies: ['DeepAlgo', 'Pelocal', 'Qubehealth', 'StampMyVisa', 'Zealthix'] },
   { name: 'DefenceTech', companies: ['Qdit Labs', 'Eyerov', 'BonV Aero', 'Venttup'] },
   { name: 'SpaceTech', companies: ['OrbitAid', 'Takeme2Space', 'Satleo'] },
   { name: 'Semiconductors', companies: ['Netrasemi', 'Vervesemi'] },
   { name: 'HealthTech', companies: ['Piscium', 'BioScan', 'Exsure', 'Mediseva'] },
   { name: 'Energy', companies: [] },
-  { name: 'AI (Vertical AI + AI Infra)', companies: ['Vodex'] },
+  { name: 'AI (Vertical AI + AI Infra)', companies: ['Vodex', 'Kluisz'] },
   { name: 'Climate / Agri Tech', companies: ['Aurassure', 'Verdant Impact', 'Cropcoin'] },
   { name: 'Industry 4.0 / Advanced Manufacturing', companies: [] },
 ]
@@ -530,20 +530,28 @@ function financialsCellHtml(c) {
   return `<ul style="margin:0;padding-left:16px;">${items.join('')}</ul>`
 }
 
-// Flat bold-label bullet list, matching financialsCellHtml's visual style —
-// same underlying content as before (kpis/momDrivers/qoqDrivers/nextQuestion,
-// nothing added or reworded), just presented as one bullet list per cell
-// instead of separate sub-headed blocks.
+// Bold-label bullet list, same visual style as financialsCellHtml — CRISP
+// version: the SubAgent/Master Agent still compute the full kpis/momDrivers/
+// qoqDrivers/nextQuestion arrays in full depth (that full analysis is what
+// backs the burn-integrity/accuracy checks and still lives in the raw
+// validated JSON) but the EMAIL CELL only surfaces the top few, highest-
+// signal items — a straight selection/truncation of already-verified text,
+// never a reworded or newly-generated summary, so this cannot introduce a
+// new factual error or hallucination. Cap: up to 3 KPIs (name: value only,
+// no period suffix), the single lead MoM driver, the single lead QoQ driver,
+// and the next question — matching the crisp reference format the user
+// approved, not the exhaustive one-bullet-per-item dump this replaced.
+const KPI_CELL_MAX_KPIS = 3
 function kpiCellHtml(c) {
   const items = []
-  for (const k of (c.kpis || [])) {
-    items.push(labelItem('KPI', `${esc(k.name)}: ${esc(k.value)}${k.period ? ` (${esc(k.period)})` : ''}`))
+  for (const k of (c.kpis || []).slice(0, KPI_CELL_MAX_KPIS)) {
+    items.push(labelItem('KPI', `${esc(k.name)}: ${esc(k.value)}`))
   }
   if (c.kpiFallbackUsedCustomerPipeline) {
     items.push(`<li style="margin-bottom:3px;color:#b98900;">* No operating KPI could be found; customer pipeline shown as last resort.</li>`)
   }
-  for (const d of (c.momDrivers || [])) items.push(labelItem('MoM', esc(d)))
-  for (const d of (c.qoqDrivers || [])) items.push(labelItem('QoQ', esc(d)))
+  if ((c.momDrivers || []).length) items.push(labelItem('MoM', esc(c.momDrivers[0])))
+  if ((c.qoqDrivers || []).length) items.push(labelItem('QoQ', esc(c.qoqDrivers[0])))
   if (c.nextQuestion) items.push(labelItem('Next Q', esc(c.nextQuestion)))
   if (!items.length) return '<span style="color:#9ca3af;font-style:italic;">None reported</span>'
   return `<ul style="margin:0;padding-left:16px;">${items.join('')}</ul>`
@@ -763,7 +771,9 @@ if (!anyClusterValidated) {
 log(`Validated ${validated.companies.length} companies across ${clusterEntries.length} clusters.`)
 
 phase('Email')
-const subject = `UIV Fund III — Weekly Portfolio Insights | ${a.coverageWeekLabel}`
+// Fixed subject, always exactly this — never date/week-suffixed — per user
+// instruction, so the weekly email is easy to filter/recognize in the inbox.
+const subject = `Revenue/Cashflows/KPIs Fund III`
 const htmlBody = buildHtmlEmail(validated, a)
 const plainText = buildPlainTextFallback(validated, a)
 const sendResult = await agent(emailSendPrompt(subject, htmlBody, plainText, a), { phase: 'Email' })
