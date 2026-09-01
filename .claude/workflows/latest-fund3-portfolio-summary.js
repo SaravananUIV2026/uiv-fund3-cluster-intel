@@ -304,11 +304,17 @@ const VALIDATION_SCHEMA = {
   type: 'object',
   properties: {
     companies: { type: 'array', items: VALIDATED_COMPANY_SCHEMA },
-    portfolioFlags: { type: 'array', items: { type: 'string' }, description: 'Short cross-portfolio callouts for this week (biggest movers, red flags), grounded only in the validated data' },
     dataIntegrityNotes: { type: 'array', items: { type: 'string' }, description: 'Any figure you corrected or removed during validation, and why' },
   },
   required: ['companies'],
 }
+// NOTE: portfolioFlags (the "Flags this week" cross-portfolio summary) was
+// intentionally removed from this schema and from the email — the user asked
+// to drop it entirely to cut compute/tokens and runtime. Do not re-add it
+// without being asked; every fact it used to surface (burn corrections,
+// access gaps, weakening theses) is still fully present per-company in
+// dataGapsOrCaveats/validationNotes and each company's own table row, so
+// nothing is lost by removing the separate synthesis pass.
 
 function companyPrompt(clusterName, companyInfo, a) {
   const secondary = SECONDARY_LENS[companyInfo.brand]
@@ -399,13 +405,13 @@ skip this even under time/token pressure):
 - Tighten momDrivers/qoqDrivers/kpis/vcLensNotes text to be crisp, bullet-ready, and free
   of generic filler — every bullet must cite a real number or fact from that company's
   own SubAgent output, nothing invented at this stage either.
-- Write portfolioFlags: a handful of the most decision-relevant callouts from THIS
-  cluster only this week (biggest revenue movers, any Red financialHealth, any runway
-  concern) — grounded only in the data present, not speculation.
+- Do NOT produce a separate cross-portfolio flags/summary section — none is needed;
+  every material fact (burn corrections, access gaps, weakening theses, Red health)
+  belongs in that company's own dataGapsOrCaveats/validationNotes and its table row.
 
 Return via the required schema: companies (same objects, corrected/tightened, each with
-a short validationNotes stating what if anything you changed), portfolioFlags,
-dataIntegrityNotes — all scoped to this cluster's companies only.`
+a short validationNotes stating what if anything you changed), dataIntegrityNotes — all
+scoped to this cluster's companies only.`
 }
 
 function emailSendPrompt(subject, htmlBody, plainText, a) {
@@ -524,20 +530,23 @@ function financialsCellHtml(c) {
   return `<ul style="margin:0;padding-left:16px;">${items.join('')}</ul>`
 }
 
+// Flat bold-label bullet list, matching financialsCellHtml's visual style —
+// same underlying content as before (kpis/momDrivers/qoqDrivers/nextQuestion,
+// nothing added or reworded), just presented as one bullet list per cell
+// instead of separate sub-headed blocks.
 function kpiCellHtml(c) {
-  const parts = []
-  const kpiText = (c.kpis || []).map(k => `${k.name}: ${k.value}${k.period ? ` (${k.period})` : ''}`)
-  parts.push(`<div style="margin-bottom:6px;">${bulletList(kpiText)}${c.kpiFallbackUsedCustomerPipeline ? ' <span title="No operating KPI could be found; showing pipeline as last resort" style="color:#b98900;">*</span>' : ''}</div>`)
-  if ((c.momDrivers || []).length) {
-    parts.push(`<div style="margin-bottom:6px;"><b>MoM:</b>${bulletList(c.momDrivers)}</div>`)
+  const items = []
+  for (const k of (c.kpis || [])) {
+    items.push(labelItem('KPI', `${esc(k.name)}: ${esc(k.value)}${k.period ? ` (${esc(k.period)})` : ''}`))
   }
-  if ((c.qoqDrivers || []).length) {
-    parts.push(`<div style="margin-bottom:6px;"><b>QoQ:</b>${bulletList(c.qoqDrivers)}</div>`)
+  if (c.kpiFallbackUsedCustomerPipeline) {
+    items.push(`<li style="margin-bottom:3px;color:#b98900;">* No operating KPI could be found; customer pipeline shown as last resort.</li>`)
   }
-  if (c.nextQuestion) {
-    parts.push(`<div style="font-style:italic;color:#374151;"><b>Next Q:</b> ${esc(c.nextQuestion)}</div>`)
-  }
-  return parts.join('')
+  for (const d of (c.momDrivers || [])) items.push(labelItem('MoM', esc(d)))
+  for (const d of (c.qoqDrivers || [])) items.push(labelItem('QoQ', esc(d)))
+  if (c.nextQuestion) items.push(labelItem('Next Q', esc(c.nextQuestion)))
+  if (!items.length) return '<span style="color:#9ca3af;font-style:italic;">None reported</span>'
+  return `<ul style="margin:0;padding-left:16px;">${items.join('')}</ul>`
 }
 
 function buildHtmlEmail(validated, a) {
@@ -548,13 +557,6 @@ function buildHtmlEmail(validated, a) {
   }
   const clusterOrder = CLUSTERS.map(cl => cl.name).filter(name => byCluster.has(name))
   for (const name of byCluster.keys()) if (!clusterOrder.includes(name)) clusterOrder.push(name)
-
-  const flagsHtml = (validated.portfolioFlags || []).length
-    ? `<div style="background:#fef9e7;border:1px solid #f0d878;border-radius:8px;padding:12px 16px;margin-bottom:20px;">
-         <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#5c4a00;">Flags this week</div>
-         ${bulletList(validated.portfolioFlags)}
-       </div>`
-    : ''
 
   const sections = clusterOrder.map(clusterName => {
     const rows = byCluster.get(clusterName)
@@ -594,7 +596,6 @@ function buildHtmlEmail(validated, a) {
     </style>
     <h1 style="font-size:20px;margin-bottom:2px;">UIV Fund III — Weekly Portfolio Insights</h1>
     <div style="color:#6b7280;font-size:13px;margin-bottom:16px;">Coverage week: ${esc(a.coverageWeekLabel)}</div>
-    ${flagsHtml}
     ${sections.replaceAll('<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;table-layout:fixed;">', '<table data-fund3 style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;table-layout:fixed;">')}
     <div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:11px;color:#6b7280;">
       <div><b>Runway</b> = Cash in Bank ÷ Monthly Burn, computed programmatically from the source-reported figures above (never hand-calculated by the analyst); burn is verified in a burn-positive sign convention and cross-checked for plausibility before it reaches this table. "(derived)" quarterly burn = 3× latest monthly burn where no separate quarterly figure was stated in source. * = no operating KPI could be found after a thorough check; customer pipeline shown as last resort.</div>
@@ -606,11 +607,6 @@ function buildHtmlEmail(validated, a) {
 
 function buildPlainTextFallback(validated, a) {
   const lines = [`UIV Fund III — Weekly Portfolio Insights | ${a.coverageWeekLabel}`, '']
-  if ((validated.portfolioFlags || []).length) {
-    lines.push('FLAGS THIS WEEK:')
-    validated.portfolioFlags.forEach(f => lines.push(`- ${f}`))
-    lines.push('')
-  }
   const byCluster = new Map()
   for (const c of validated.companies) {
     if (!byCluster.has(c.cluster)) byCluster.set(c.cluster, [])
@@ -745,14 +741,13 @@ const clusterValidations = await parallel(
   )
 )
 
-const validated = { companies: [], portfolioFlags: [], dataIntegrityNotes: [] }
+const validated = { companies: [], dataIntegrityNotes: [] }
 let anyClusterValidated = false
 clusterValidations.forEach((v, i) => {
   const [clusterName, companies] = clusterEntries[i]
   if (v && Array.isArray(v.companies) && v.companies.length) {
     anyClusterValidated = true
     validated.companies.push(...v.companies)
-    validated.portfolioFlags.push(...(v.portfolioFlags || []))
     validated.dataIntegrityNotes.push(...(v.dataIntegrityNotes || []))
   } else {
     // This one cluster's validation failed — fall back to its raw,
@@ -765,7 +760,7 @@ clusterValidations.forEach((v, i) => {
 if (!anyClusterValidated) {
   throw new Error('Every cluster validation call failed this run (likely a transient API/usage-limit issue) — no email was sent. Re-run the workflow.')
 }
-log(`Validated ${validated.companies.length} companies across ${clusterEntries.length} clusters. Flags: ${validated.portfolioFlags.join(' | ') || 'none'}`)
+log(`Validated ${validated.companies.length} companies across ${clusterEntries.length} clusters.`)
 
 phase('Email')
 const subject = `UIV Fund III — Weekly Portfolio Insights | ${a.coverageWeekLabel}`

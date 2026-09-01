@@ -45,6 +45,21 @@ carries the same company/cluster data as v2 plus two classes of fixes:
    The underlying data and validation pipeline are unaffected — this is a display-layer
    change only.
 
+3. **"Flags this week" removed entirely** (both compute and output): the Master Agent no
+   longer generates a `portfolioFlags` cross-portfolio summary, and the email no longer
+   has a "Flags this week" box. This was a deliberate token/time cut, not a data loss —
+   every fact that box used to surface (burn-sign corrections, access gaps, weakening
+   theses, Red health) is still fully present per-company in `dataGapsOrCaveats` /
+   `validationNotes` and that company's own table row. Do not re-add this section unless
+   explicitly asked.
+
+4. **KPIs/Business Updates cell simplified to one flat bullet list**: previously this
+   cell had separate sub-headed blocks (a KPI `<ul>`, then a "MoM:" block, then "QoQ:",
+   then "Next Q:"). It's now a single bold-label bullet list (`KPI: ...`, `MoM: ...`,
+   `QoQ: ...`, `Next Q: ...`) — the same visual pattern as the Revenue/Cashflow cell, and
+   the same underlying content (kpis/momDrivers/qoqDrivers/nextQuestion) with nothing
+   reworded or added. This is a pure formatting change with zero compute cost.
+
 ## Standing facts (same as v2, do not re-ask the user for these)
 
 - Google Drive source (READ-ONLY, never write/edit/rename/move/delete/upload/annotate):
@@ -82,11 +97,12 @@ carries the same company/cluster data as v2 plus two classes of fixes:
 3. Run it in the background (it fans out ~37 company-level subagents and takes a while);
    tell the user it's running.
 4. When it completes, report: how many companies were covered, any flagged in
-   `dataIntegrityNotes` or `portfolioFlags` (pay particular attention to any burn-sign or
-   plausibility corrections logged here — that is this version's core fix, so a clean
-   first run is worth calling out explicitly), any companies with a genuine data gap
+   `dataIntegrityNotes` (pay particular attention to any burn-sign or plausibility
+   corrections logged here — that is this version's core fix, so a clean first run is
+   worth calling out explicitly), any companies with a genuine data gap
    (`dataGapsOrCaveats`), and confirm the email send result. Do not re-send the email
-   yourself.
+   yourself. There is no `portfolioFlags` field any more — it was removed on purpose (see
+   "What changed vs v2" above); don't look for it or try to report it.
 5. Every company appears in the email every week (full one-pager) — only surface a
    structural-failure case to the user (most companies came back `dataAvailable: false`),
    same as v2.
