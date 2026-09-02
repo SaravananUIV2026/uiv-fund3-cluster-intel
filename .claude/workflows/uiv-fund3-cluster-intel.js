@@ -663,7 +663,7 @@ if (!validated || !Array.isArray(validated.companies) || !validated.companies.le
 log(`Validated ${validated.companies.length} companies. Flags: ${(validated.portfolioFlags || []).join(' | ') || 'none'}`)
 
 phase('Email')
-const subject = `UIV Fund III — Weekly Portfolio Insights | ${a.coverageWeekLabel}`
+const subject = `Revenue/Cashflow/KPIs Fund III | ${a.coverageWeekLabel}`
 const htmlBody = buildHtmlEmail(validated, a)
 const plainText = buildPlainTextFallback(validated, a)
 const sendResult = await agent(emailSendPrompt(subject, htmlBody, plainText, a), { phase: 'Email' })
