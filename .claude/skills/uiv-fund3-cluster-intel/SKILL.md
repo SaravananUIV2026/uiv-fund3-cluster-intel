@@ -47,13 +47,13 @@ expected, not a bug, until a Fund III company is added to them.
 
 | Cluster | Fund III companies |
 |---|---|
-| Fintech & B2B SaaS | Kluisz, DeepAlgo, Pelocal, Qubehealth, StampMyVisa, Zealthix |
+| Fintech & B2B SaaS | DeepAlgo, Pelocal, Qubehealth, StampMyVisa |
 | DefenceTech | Qdit Labs, Eyerov, BonV Aero, Venttup |
 | SpaceTech | OrbitAid, Takeme2Space, Satleo |
 | Semiconductors | Netrasemi, Vervesemi |
-| HealthTech | Piscium, BioScan, Exsure, Mediseva |
+| HealthTech | Piscium, BioScan, Exsure, Mediseva, Zealthix |
 | Energy | *(none currently)* |
-| AI (Vertical AI + AI Infra) | Vodex |
+| AI (Vertical AI + AI Infra) | Vodex, Kluisz |
 | Climate / Agri Tech | Aurassure, Verdant Impact, Cropcoin |
 | Industry 4.0 / Advanced Manufacturing | *(none currently)* |
 
