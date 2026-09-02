@@ -91,13 +91,13 @@ const COMPANY_SOURCE_MAP = {
 }
 
 const CLUSTERS = [
-  { name: 'Fintech & B2B SaaS', companies: ['Kluisz', 'DeepAlgo', 'Pelocal', 'Qubehealth', 'StampMyVisa', 'Zealthix'] },
+  { name: 'Fintech & B2B SaaS', companies: [ 'DeepAlgo', 'Pelocal', 'Qubehealth', 'StampMyVisa','Zealthix'] },
   { name: 'DefenceTech', companies: ['Qdit Labs', 'Eyerov', 'BonV Aero', 'Venttup'] },
   { name: 'SpaceTech', companies: ['OrbitAid', 'Takeme2Space', 'Satleo'] },
   { name: 'Semiconductors', companies: ['Netrasemi', 'Vervesemi'] },
   { name: 'HealthTech', companies: ['Piscium', 'BioScan', 'Exsure', 'Mediseva'] },
   { name: 'Energy', companies: [] },
-  { name: 'AI (Vertical AI + AI Infra)', companies: ['Vodex'] },
+  { name: 'AI (Vertical AI + AI Infra)', companies: ['Kluisz','Vodex'] },
   { name: 'Climate / Agri Tech', companies: ['Aurassure', 'Verdant Impact', 'Cropcoin'] },
   { name: 'Industry 4.0 / Advanced Manufacturing', companies: [] },
 ]
